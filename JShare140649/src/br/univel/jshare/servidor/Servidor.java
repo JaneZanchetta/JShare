@@ -15,7 +15,7 @@ import br.univel.jshare.comum.TipoFiltro;
 public class Servidor extends Thread implements Runnable, IServer {
 	
 	
-	public static final String NOME = "FileShare";
+	public static final String NOME = "PainShare";
 	private static final int PORTA_TCPIP = 1818;
 	
 	public Servidor() throws RemoteException {
