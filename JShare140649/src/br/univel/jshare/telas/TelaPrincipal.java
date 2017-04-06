@@ -6,12 +6,31 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import br.univel.jshare.cliente.ConexaoCliente;
+import br.univel.jshare.servidor.Servidor;
+
 import javax.swing.JTabbedPane;
 import javax.swing.JRadioButton;
+import java.awt.GridBagLayout;
+import javax.swing.JLabel;
+import java.awt.GridBagConstraints;
+import javax.swing.JTextField;
+import java.awt.Insets;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.rmi.RemoteException;
+import java.awt.event.ActionEvent;
 
 public class TelaPrincipal extends JFrame {
 
 	private JPanel contentPane;
+	private JTextField txfNome;
+	private JTextField txfIP;
+	private JTextField txfPorta;
+	private ButtonGroup bg = new ButtonGroup();
 
 	/**
 	 * Launch the application.
@@ -44,23 +63,126 @@ public class TelaPrincipal extends JFrame {
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		contentPane.add(tabbedPane, BorderLayout.NORTH);
 		
-		JPanel panel = new JPanel();
-		tabbedPane.addTab("Conex\u00E3o", null, panel, null);
-		
-		JPanel panel_1 = new JPanel();
-		tabbedPane.addTab("Pesquisa", null, panel_1, null);
-		
-		JPanel panel_2 = new JPanel();
-		tabbedPane.addTab("Download", null, panel_2, null);
+		JPanel panel_Escolha = new JPanel();
+		tabbedPane.addTab("Conex\u00E3o", null, panel_Escolha, null);
 		
 		JRadioButton rdbtnServidor = new JRadioButton("Servidor");
-		panel_2.add(rdbtnServidor);
+		rdbtnServidor.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				conectarServidor();
+			}
+		});
+		panel_Escolha.add(rdbtnServidor);
 		
-		JRadioButton rdbtnNewRadioButton = new JRadioButton("Cliente");
-		panel_2.add(rdbtnNewRadioButton);
+		JRadioButton rdbtnCliente = new JRadioButton("Cliente");
+		rdbtnCliente.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				conectarCliente();
+			}
+		});
+		panel_Escolha.add(rdbtnCliente);
 		
-		JRadioButton rdbtnNewRadioButton_1 = new JRadioButton("Cliente/Servidor");
-		panel_2.add(rdbtnNewRadioButton_1);
+		JRadioButton rdbtnClientServer = new JRadioButton("Servidor e Cliente");
+		panel_Escolha.add(rdbtnClientServer);
+		bg.add(rdbtnClientServer);
+		bg.add(rdbtnCliente);
+		bg.add(rdbtnServidor);
+		
+		JPanel panel_Pesquisa = new JPanel();
+		tabbedPane.addTab("Pesquisa", null, panel_Pesquisa, null);
+		
+		JPanel panel_Download = new JPanel();
+		tabbedPane.addTab("Download", null, panel_Download, null);
+		
+		JPanel panel_Conexao = new JPanel();
+		contentPane.add(panel_Conexao, BorderLayout.CENTER);
+		GridBagLayout gbl_panel_Conexao = new GridBagLayout();
+		gbl_panel_Conexao.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_panel_Conexao.rowHeights = new int[]{0, 0, 0, 0, 0};
+		gbl_panel_Conexao.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_panel_Conexao.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		panel_Conexao.setLayout(gbl_panel_Conexao);
+		
+		JLabel lblNome = new JLabel("Nome");
+		GridBagConstraints gbc_lblNome = new GridBagConstraints();
+		gbc_lblNome.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNome.anchor = GridBagConstraints.EAST;
+		gbc_lblNome.gridx = 1;
+		gbc_lblNome.gridy = 1;
+		panel_Conexao.add(lblNome, gbc_lblNome);
+		
+		txfNome = new JTextField();
+		GridBagConstraints gbc_txfNome = new GridBagConstraints();
+		gbc_txfNome.gridwidth = 3;
+		gbc_txfNome.anchor = GridBagConstraints.NORTH;
+		gbc_txfNome.insets = new Insets(0, 0, 5, 5);
+		gbc_txfNome.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txfNome.gridx = 2;
+		gbc_txfNome.gridy = 1;
+		panel_Conexao.add(txfNome, gbc_txfNome);
+		txfNome.setColumns(10);
+		
+		JLabel lblEndereoIp = new JLabel("Endere\u00E7o IP");
+		GridBagConstraints gbc_lblEndereoIp = new GridBagConstraints();
+		gbc_lblEndereoIp.anchor = GridBagConstraints.EAST;
+		gbc_lblEndereoIp.insets = new Insets(0, 0, 5, 5);
+		gbc_lblEndereoIp.gridx = 1;
+		gbc_lblEndereoIp.gridy = 2;
+		panel_Conexao.add(lblEndereoIp, gbc_lblEndereoIp);
+		
+		txfIP = new JTextField();
+		GridBagConstraints gbc_txfIP = new GridBagConstraints();
+		gbc_txfIP.gridwidth = 3;
+		gbc_txfIP.insets = new Insets(0, 0, 5, 5);
+		gbc_txfIP.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txfIP.gridx = 2;
+		gbc_txfIP.gridy = 2;
+		panel_Conexao.add(txfIP, gbc_txfIP);
+		txfIP.setColumns(10);
+		
+		JLabel lblPorta = new JLabel("Porta");
+		GridBagConstraints gbc_lblPorta = new GridBagConstraints();
+		gbc_lblPorta.insets = new Insets(0, 0, 5, 5);
+		gbc_lblPorta.anchor = GridBagConstraints.EAST;
+		gbc_lblPorta.gridx = 6;
+		gbc_lblPorta.gridy = 2;
+		panel_Conexao.add(lblPorta, gbc_lblPorta);
+		
+		txfPorta = new JTextField();
+		GridBagConstraints gbc_txfPorta = new GridBagConstraints();
+		gbc_txfPorta.insets = new Insets(0, 0, 5, 0);
+		gbc_txfPorta.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txfPorta.gridx = 7;
+		gbc_txfPorta.gridy = 2;
+		panel_Conexao.add(txfPorta, gbc_txfPorta);
+		txfPorta.setColumns(10);
+		
+		JButton btnConectar = new JButton("Conectar");
+		GridBagConstraints gbc_btnConectar = new GridBagConstraints();
+		gbc_btnConectar.insets = new Insets(0, 0, 0, 5);
+		gbc_btnConectar.gridx = 5;
+		gbc_btnConectar.gridy = 3;
+		panel_Conexao.add(btnConectar, gbc_btnConectar);
+		
+		JButton btnDesconectar = new JButton("Desconectar");
+		GridBagConstraints gbc_btnDesconectar = new GridBagConstraints();
+		gbc_btnDesconectar.gridx = 7;
+		gbc_btnDesconectar.gridy = 3;
+		panel_Conexao.add(btnDesconectar, gbc_btnDesconectar);
+	}
+
+	protected void conectarCliente() {
+		ConexaoCliente conCliente = new ConexaoCliente();
+		
+	}
+
+	protected void conectarServidor() {
+		try {
+			Servidor servidor = new Servidor();
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }
