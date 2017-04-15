@@ -1,6 +1,7 @@
 package br.univel.jshare.telas;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
@@ -8,6 +9,8 @@ import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
 import br.univel.jshare.cliente.ConexaoCliente;
+import br.univel.jshare.comum.Cliente;
+import br.univel.jshare.comum.IServer;
 import br.univel.jshare.servidor.Servidor;
 
 import javax.swing.JTabbedPane;
@@ -21,8 +24,18 @@ import java.awt.Insets;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.awt.event.ActionEvent;
+import java.awt.Font;
+import javax.swing.JSplitPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import br.univel.jshare.util.*;
 
 public class TelaPrincipal extends JFrame {
 
@@ -30,7 +43,10 @@ public class TelaPrincipal extends JFrame {
 	private JTextField txfNome;
 	private JTextField txfIP;
 	private JTextField txfPorta;
-	private ButtonGroup bg = new ButtonGroup();
+	private JTextField txfPasta;
+	private boolean cliConectado = false;
+	private boolean serverConectado = false;
+	private Cliente cliente;
 
 	/**
 	 * Launch the application.
@@ -60,129 +76,206 @@ public class TelaPrincipal extends JFrame {
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
 		
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		contentPane.add(tabbedPane, BorderLayout.NORTH);
+		JTabbedPane tabbedPane_1 = new JTabbedPane(JTabbedPane.TOP);
+		contentPane.add(tabbedPane_1, BorderLayout.NORTH);
 		
-		JPanel panel_Escolha = new JPanel();
-		tabbedPane.addTab("Conex\u00E3o", null, panel_Escolha, null);
+		JPanel panelConexao = new JPanel();
+		tabbedPane_1.addTab("Conex\u00E3o", null, panelConexao, null);
 		
-		JRadioButton rdbtnServidor = new JRadioButton("Servidor");
-		rdbtnServidor.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				conectarServidor();
-			}
-		});
-		panel_Escolha.add(rdbtnServidor);
-		
-		JRadioButton rdbtnCliente = new JRadioButton("Cliente");
-		rdbtnCliente.addActionListener(new ActionListener() {
+		JButton btnIniciarServidor = new JButton("Iniciar Servidor");
+		btnIniciarServidor.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				conectarCliente();
+				iniciaServidor();
 			}
 		});
-		panel_Escolha.add(rdbtnCliente);
+		panelConexao.add(btnIniciarServidor);
 		
-		JRadioButton rdbtnClientServer = new JRadioButton("Servidor e Cliente");
-		panel_Escolha.add(rdbtnClientServer);
-		bg.add(rdbtnClientServer);
-		bg.add(rdbtnCliente);
-		bg.add(rdbtnServidor);
+		JPanel panelPesquisa = new JPanel();
+		tabbedPane_1.addTab("Pesquisa", null, panelPesquisa, null);
 		
-		JPanel panel_Pesquisa = new JPanel();
-		tabbedPane.addTab("Pesquisa", null, panel_Pesquisa, null);
+		JPanel panelResumo = new JPanel();
+		tabbedPane_1.addTab("Resumo", null, panelResumo, null);
 		
-		JPanel panel_Download = new JPanel();
-		tabbedPane.addTab("Download", null, panel_Download, null);
+		JPanel panelCliente = new JPanel();
+		contentPane.add(panelCliente, BorderLayout.CENTER);
+		GridBagLayout gbl_panelCliente = new GridBagLayout();
+		gbl_panelCliente.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_panelCliente.rowHeights = new int[]{0, 0, 0, 0};
+		gbl_panelCliente.columnWeights = new double[]{0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
+		gbl_panelCliente.rowWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
+		panelCliente.setLayout(gbl_panelCliente);
 		
-		JPanel panel_Conexao = new JPanel();
-		contentPane.add(panel_Conexao, BorderLayout.CENTER);
-		GridBagLayout gbl_panel_Conexao = new GridBagLayout();
-		gbl_panel_Conexao.columnWidths = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_panel_Conexao.rowHeights = new int[]{0, 0, 0, 0, 0};
-		gbl_panel_Conexao.columnWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		gbl_panel_Conexao.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		panel_Conexao.setLayout(gbl_panel_Conexao);
-		
-		JLabel lblNome = new JLabel("Nome");
-		GridBagConstraints gbc_lblNome = new GridBagConstraints();
-		gbc_lblNome.insets = new Insets(0, 0, 5, 5);
-		gbc_lblNome.anchor = GridBagConstraints.EAST;
-		gbc_lblNome.gridx = 1;
-		gbc_lblNome.gridy = 1;
-		panel_Conexao.add(lblNome, gbc_lblNome);
+		JLabel lblNewLabel = new JLabel("Nome");
+		GridBagConstraints gbc_lblNewLabel = new GridBagConstraints();
+		gbc_lblNewLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNewLabel.anchor = GridBagConstraints.EAST;
+		gbc_lblNewLabel.gridx = 0;
+		gbc_lblNewLabel.gridy = 0;
+		panelCliente.add(lblNewLabel, gbc_lblNewLabel);
 		
 		txfNome = new JTextField();
+		txfNome.setText("Seu nome de usu\u00E1rio");
 		GridBagConstraints gbc_txfNome = new GridBagConstraints();
-		gbc_txfNome.gridwidth = 3;
-		gbc_txfNome.anchor = GridBagConstraints.NORTH;
 		gbc_txfNome.insets = new Insets(0, 0, 5, 5);
+		gbc_txfNome.anchor = GridBagConstraints.NORTH;
 		gbc_txfNome.fill = GridBagConstraints.HORIZONTAL;
-		gbc_txfNome.gridx = 2;
-		gbc_txfNome.gridy = 1;
-		panel_Conexao.add(txfNome, gbc_txfNome);
+		gbc_txfNome.gridx = 1;
+		gbc_txfNome.gridy = 0;
+		panelCliente.add(txfNome, gbc_txfNome);
 		txfNome.setColumns(10);
 		
 		JLabel lblEndereoIp = new JLabel("Endere\u00E7o IP");
 		GridBagConstraints gbc_lblEndereoIp = new GridBagConstraints();
 		gbc_lblEndereoIp.anchor = GridBagConstraints.EAST;
 		gbc_lblEndereoIp.insets = new Insets(0, 0, 5, 5);
-		gbc_lblEndereoIp.gridx = 1;
-		gbc_lblEndereoIp.gridy = 2;
-		panel_Conexao.add(lblEndereoIp, gbc_lblEndereoIp);
+		gbc_lblEndereoIp.gridx = 0;
+		gbc_lblEndereoIp.gridy = 1;
+		panelCliente.add(lblEndereoIp, gbc_lblEndereoIp);
 		
 		txfIP = new JTextField();
+		txfIP.setText("IP do Servidor");
 		GridBagConstraints gbc_txfIP = new GridBagConstraints();
-		gbc_txfIP.gridwidth = 3;
 		gbc_txfIP.insets = new Insets(0, 0, 5, 5);
+		gbc_txfIP.anchor = GridBagConstraints.NORTH;
 		gbc_txfIP.fill = GridBagConstraints.HORIZONTAL;
-		gbc_txfIP.gridx = 2;
-		gbc_txfIP.gridy = 2;
-		panel_Conexao.add(txfIP, gbc_txfIP);
+		gbc_txfIP.gridx = 1;
+		gbc_txfIP.gridy = 1;
+		panelCliente.add(txfIP, gbc_txfIP);
 		txfIP.setColumns(10);
 		
 		JLabel lblPorta = new JLabel("Porta");
 		GridBagConstraints gbc_lblPorta = new GridBagConstraints();
 		gbc_lblPorta.insets = new Insets(0, 0, 5, 5);
 		gbc_lblPorta.anchor = GridBagConstraints.EAST;
-		gbc_lblPorta.gridx = 6;
-		gbc_lblPorta.gridy = 2;
-		panel_Conexao.add(lblPorta, gbc_lblPorta);
+		gbc_lblPorta.gridx = 5;
+		gbc_lblPorta.gridy = 1;
+		panelCliente.add(lblPorta, gbc_lblPorta);
 		
 		txfPorta = new JTextField();
+		txfPorta.setText("Porta p/ conex\u00E3o");
 		GridBagConstraints gbc_txfPorta = new GridBagConstraints();
 		gbc_txfPorta.insets = new Insets(0, 0, 5, 0);
+		gbc_txfPorta.anchor = GridBagConstraints.NORTH;
 		gbc_txfPorta.fill = GridBagConstraints.HORIZONTAL;
-		gbc_txfPorta.gridx = 7;
-		gbc_txfPorta.gridy = 2;
-		panel_Conexao.add(txfPorta, gbc_txfPorta);
+		gbc_txfPorta.gridx = 6;
+		gbc_txfPorta.gridy = 1;
+		panelCliente.add(txfPorta, gbc_txfPorta);
 		txfPorta.setColumns(10);
 		
+		JLabel lblNewLabel_1 = new JLabel("Pasta");
+		GridBagConstraints gbc_lblNewLabel_1 = new GridBagConstraints();
+		gbc_lblNewLabel_1.anchor = GridBagConstraints.EAST;
+		gbc_lblNewLabel_1.insets = new Insets(0, 0, 0, 5);
+		gbc_lblNewLabel_1.gridx = 0;
+		gbc_lblNewLabel_1.gridy = 2;
+		panelCliente.add(lblNewLabel_1, gbc_lblNewLabel_1);
+		
+		txfPasta = new JTextField();
+		txfPasta.setText("(Path) Pasta aonde est\u00E3o arquivos a compartilhar");
+		GridBagConstraints gbc_txfPasta = new GridBagConstraints();
+		gbc_txfPasta.anchor = GridBagConstraints.NORTH;
+		gbc_txfPasta.insets = new Insets(0, 0, 0, 5);
+		gbc_txfPasta.fill = GridBagConstraints.HORIZONTAL;
+		gbc_txfPasta.gridx = 1;
+		gbc_txfPasta.gridy = 2;
+		panelCliente.add(txfPasta, gbc_txfPasta);
+		txfPasta.setColumns(10);
+		
 		JButton btnConectar = new JButton("Conectar");
+		btnConectar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				conectarCliente();
+			}
+		});
 		GridBagConstraints gbc_btnConectar = new GridBagConstraints();
 		gbc_btnConectar.insets = new Insets(0, 0, 0, 5);
-		gbc_btnConectar.gridx = 5;
-		gbc_btnConectar.gridy = 3;
-		panel_Conexao.add(btnConectar, gbc_btnConectar);
+		gbc_btnConectar.gridx = 4;
+		gbc_btnConectar.gridy = 2;
+		panelCliente.add(btnConectar, gbc_btnConectar);
 		
-		JButton btnDesconectar = new JButton("Desconectar");
-		GridBagConstraints gbc_btnDesconectar = new GridBagConstraints();
-		gbc_btnDesconectar.gridx = 7;
-		gbc_btnDesconectar.gridy = 3;
-		panel_Conexao.add(btnDesconectar, gbc_btnDesconectar);
+		JScrollPane scrollPane = new JScrollPane();
+		contentPane.add(scrollPane, BorderLayout.SOUTH);
+		
+		JTextArea textArea = new JTextArea();
+		textArea.setForeground(new Color(50, 205, 50));
+		textArea.setBackground(Color.BLACK);
+		scrollPane.setViewportView(textArea);
+		
 	}
-
+/*  num tá dando certo!
+	JTextArea textArea = new JTextArea();
+	textArea.setForeground(new Color(50, 205, 50));
+	textArea.setBackground(Color.BLACK);
+ 	scrollPane.setViewportView(textArea);
+	splitPane.setDividerLocation(200);
+	*/
+	
+	
 	protected void conectarCliente() {
-		ConexaoCliente conCliente = new ConexaoCliente();
+		LerIp lerIP = new LerIp();
+		String IPString;
+/*		IPString = ????(): lerip do metodo
+ * 
+ *      ver o que está errado para conseguir usar metodo do outro pacote
+ *      acertar e tirar as linhas abaixo
+ */
 		
-	}
-
-	protected void conectarServidor() {
+		InetAddress IP;
+ 
 		try {
-			Servidor servidor = new Servidor();
+			IP = InetAddress.getLocalHost();
+		    IPString = IP.getHostAddress();
+		} catch (UnknownHostException e) {
+			IPString = "99999999";
+			e.printStackTrace();
+		}
+//   ** eliminar até aqui qdo conseguir usar o util	
+		
+		String nomeCli = txfNome.getText().trim(); 
+		String endIP = txfIP.getText().trim();
+		int porta = Integer.parseInt(txfPorta.getText().trim());
+		String pastaCli = txfPasta.getText().trim();
+		Registry registry;
+	
+		try {
+			registry = LocateRegistry.getRegistry(endIP, porta);
+			try {
+				IServer servidor = (IServer) registry.lookup(IServer.NOME_SERVICO);
+			} catch (NotBoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		cliente = new Cliente();
+		cliente.setId(Long.valueOf((IPString.replace(".", ""))));
+		cliente.setIp(IPString);
+		cliente.setNome(nomeCli);
+		cliente.setPorta(porta);
+		
 	}
 
+	protected void iniciaServidor() {
+		/*
+		 *  acho que tenho que mudar a implementação do servidor pq
+		 *  senão qdo dar o newservidor se for cliente vai dar B.O
+		 *  testar local e depois arrumar
+		 */
+		
+		
+		if (serverConectado) {
+			try {
+			Servidor meuServidor = new Servidor();
+			serverConectado = true;
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}		
+	
+
+	}
 }

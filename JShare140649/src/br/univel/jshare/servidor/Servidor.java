@@ -3,6 +3,7 @@ package br.univel.jshare.servidor;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,9 @@ public class Servidor extends Thread implements Runnable, IServer {
 	
 	public static final String NOME = "JShare";
 	private static final int PORTA_TCPIP = 1818;
+	
+	private List<Cliente> listClientes;	
+	private Map<Cliente, List<Arquivo>> mapa = new HashMap<Cliente, List<Arquivo>>();
 	
 	public Servidor() throws RemoteException {
 		super();
@@ -51,13 +55,15 @@ public class Servidor extends Thread implements Runnable, IServer {
 
 	@Override
 	public void registrarCliente(Cliente c) throws RemoteException {
-		// TODO Auto-generated method stub
+		listClientes.add(c);
+		System.out.println("Cliente " + c.getNome() + "(IP:" + c.getIp() + ") conectou-se");
+		// trocar por msg na tela qdo conseguir acertar a tela preta
 		
 	}
 
 	@Override
 	public void publicarListaArquivos(Cliente c, List<Arquivo> lista) throws RemoteException {
-		// TODO Auto-generated method stub
+		mapa.put(c, lista);
 		
 	}
 
